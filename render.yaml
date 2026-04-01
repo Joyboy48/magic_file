@@ -23,54 +23,53 @@ services:
       - key: DATABASE_URL
         fromDatabase:
           name: magic-db
-          property: internalConnectionString
+          property: connectionString
       - key: REDIS_URL
         fromService:
           type: redis
           name: magic-redis
-          property: internalConnectionString
+          property: connectionString
       - key: CELERY_BROKER_URL
         fromService:
           type: redis
           name: magic-redis
-          property: internalConnectionString
+          property: connectionString
       - key: CELERY_RESULT_BACKEND
         fromService:
           type: redis
           name: magic-redis
-          property: internalConnectionString
+          property: connectionString
       - key: UPLOAD_DIR
         value: /data/uploads
       - key: CORS_ORIGINS
         value: https://your-frontend.vercel.app
 
-  # --- Celery Worker ---
+  # --- Celery Worker (uses Dockerfile.worker with celery CMD baked in) ---
   - type: worker
     name: magic-worker
     runtime: docker
-    dockerfilePath: ./backend/Dockerfile
+    dockerfilePath: ./backend/Dockerfile.worker
     dockerContext: ./backend
     plan: free
-    startCommand: celery -A app.worker.celery_app worker --loglevel=INFO --concurrency=1
     envVars:
       - key: DATABASE_URL
         fromDatabase:
           name: magic-db
-          property: internalConnectionString
+          property: connectionString
       - key: REDIS_URL
         fromService:
           type: redis
           name: magic-redis
-          property: internalConnectionString
+          property: connectionString
       - key: CELERY_BROKER_URL
         fromService:
           type: redis
           name: magic-redis
-          property: internalConnectionString
+          property: connectionString
       - key: CELERY_RESULT_BACKEND
         fromService:
           type: redis
           name: magic-redis
-          property: internalConnectionString
+          property: connectionString
       - key: UPLOAD_DIR
         value: /data/uploads
