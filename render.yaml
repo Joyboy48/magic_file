@@ -42,7 +42,7 @@ services:
       - key: UPLOAD_DIR
         value: /data/uploads
       - key: CORS_ORIGINS
-        value: https://your-frontend.vercel.app
+        value: https://magic-file-rosy.vercel.app
 
   # --- Celery Worker (uses Dockerfile.worker with celery CMD baked in) ---
   - type: worker
