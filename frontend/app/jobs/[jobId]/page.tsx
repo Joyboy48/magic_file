@@ -83,7 +83,9 @@ export default function JobDetailPage({ params }: { params: { jobId: string } })
 
   useEffect(() => {
     const es = new EventSource(`${API_URL}/api/jobs/${jobId}/events`);
-    es.onmessage = (ev) => {
+
+    // Handler shared by all named event types.
+    const handleEvent = (ev: MessageEvent) => {
       try {
         const data: ProgressEvent = JSON.parse(ev.data);
         setEvents((prev) => [...prev, data]);
@@ -98,7 +100,9 @@ export default function JobDetailPage({ params }: { params: { jobId: string } })
                     ? "failed"
                     : data.type === "job_completed"
                     ? "completed"
-                    : prev.status
+                    : data.type === "job_snapshot" && (data as any).status
+                    ? (data as any).status
+                    : prev.status,
               }
             : prev
         );
@@ -106,6 +110,28 @@ export default function JobDetailPage({ params }: { params: { jobId: string } })
         // ignore
       }
     };
+
+    // The backend sends *named* SSE events (event: job_started, etc.).
+    // `onmessage` only fires for *un-named* events, so we must use
+    // addEventListener for every event type we care about.
+    const EVENT_TYPES = [
+      "job_snapshot",
+      "job_queued",
+      "job_started",
+      "document_parsing_started",
+      "document_parsing_completed",
+      "field_extraction_started",
+      "field_extraction_completed",
+      "final_result_stored",
+      "job_completed",
+      "job_failed",
+      "progress",
+    ];
+    EVENT_TYPES.forEach((t) => es.addEventListener(t, handleEvent as EventListener));
+
+    // Fallback: also listen on onmessage for any un-named events.
+    es.onmessage = handleEvent;
+
     es.onerror = () => {
       es.close();
     };
@@ -113,6 +139,18 @@ export default function JobDetailPage({ params }: { params: { jobId: string } })
       es.close();
     };
   }, [jobId]);
+
+  // Polling fallback: re-fetch DB state every 3 s while job is not terminal.
+  // This ensures the UI updates even when SSE events are missed due to the
+  // fire-and-forget nature of Redis pub/sub.
+  useEffect(() => {
+    if (isTerminal) return;
+    const id = setInterval(() => {
+      loadJob();
+    }, 3000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jobId, isTerminal]);
 
   async function handleRetry() {
     setIsRetrying(true);
