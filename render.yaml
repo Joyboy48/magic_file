@@ -1,0 +1,77 @@
+databases:
+  - name: magic-db
+    databaseName: magic
+    user: magic
+    plan: free
+
+services:
+  # --- Redis ---
+  - type: redis
+    name: magic-redis
+    plan: free
+    ipAllowList: []          # internal only
+
+  # --- FastAPI Web Service ---
+  - type: web
+    name: magic-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: magic-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: magic-redis
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        fromService:
+          type: redis
+          name: magic-redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          type: redis
+          name: magic-redis
+          property: connectionString
+      - key: UPLOAD_DIR
+        value: /data/uploads
+      # Set this to your Vercel frontend URL after deploying
+      - key: CORS_ORIGINS
+        value: https://your-frontend.vercel.app
+    healthCheckPath: /health
+
+  # --- Celery Worker ---
+  - type: worker
+    name: magic-worker
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    dockerCommand: celery -A app.worker.celery_app worker --loglevel=INFO --concurrency=1
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: magic-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: magic-redis
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        fromService:
+          type: redis
+          name: magic-redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          type: redis
+          name: magic-redis
+          property: connectionString
+      - key: UPLOAD_DIR
+        value: /data/uploads
