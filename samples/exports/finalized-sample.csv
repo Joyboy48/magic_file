@@ -1,0 +1,2 @@
+job_id,document_id,filename,title,category,summary,keywords,status
+81ee5fdd-be19-45ee-b2df-4291d8c55e43,67567eb6-c8a3-476b-93e1-bd0fdf857468,sample1.txt,sample1,technology,"This is a sample document about Celery, FastAPI, and async processing.",sample;document;about;celery;fastapi;async;processing,completed
